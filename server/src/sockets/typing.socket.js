@@ -1,27 +1,51 @@
+import { requireActiveParticipant } from "../utils/participant.js";
+
 export const registerTypingHandlers = (io, socket) => {
 
-    socket.on("typing-start", ({ conversationId }) => {
+    socket.on("typing-start", async ({ conversationId }) => {
 
-        socket.to(`conversation:${conversationId}`).emit(
-            "typing-start",
-            {
+        try {
+            await requireActiveParticipant(
                 conversationId,
-                userId: socket.user.id,
-                username: socket.user.username
-            }
-        );
+                socket.user.id
+            );
+
+            socket.to(`conversation:${conversationId}`).emit(
+                "typing-start",
+                {
+                    conversationId,
+                    userId: socket.user.id,
+                    username: socket.user.username
+                }
+            );
+        } catch (error) {
+            socket.emit("error-message", {
+                message: error.message
+            });
+        }
 
     });
 
-    socket.on("typing-stop", ({ conversationId }) => {
+    socket.on("typing-stop", async ({ conversationId }) => {
 
-        socket.to(`conversation:${conversationId}`).emit(
-            "typing-stop",
-            {
+        try {
+            await requireActiveParticipant(
                 conversationId,
-                userId: socket.user.id
-            }
-        );
+                socket.user.id
+            );
+
+            socket.to(`conversation:${conversationId}`).emit(
+                "typing-stop",
+                {
+                    conversationId,
+                    userId: socket.user.id
+                }
+            );
+        } catch (error) {
+            socket.emit("error-message", {
+                message: error.message
+            });
+        }
 
     });
 

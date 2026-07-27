@@ -2,13 +2,10 @@ import prisma from "../config/prisma.js";
 import AppError from "../utils/AppError.js";
 
 export const sendFriendRequest = async (senderId, receiverId) => {
-
-    // Cannot send request to yourself
     if (senderId === receiverId) {
         throw new AppError("You cannot send a friend request to yourself.", 400);
     }
-
-    // Receiver must exist
+    
     const receiver = await prisma.user.findUnique({
         where: {
             id: receiverId
@@ -19,7 +16,19 @@ export const sendFriendRequest = async (senderId, receiverId) => {
         throw new AppError("User not found.", 404);
     }
 
-    // Existing friendship
+    const blocked = await prisma.block.findFirst({
+        where: {
+            OR: [
+                { blockerId: senderId, blockedId: receiverId },
+                { blockerId: receiverId, blockedId: senderId }
+            ]
+        }
+    });
+
+    if (blocked) {
+        throw new AppError("You cannot send a friend request to this user.", 403);
+    }
+
     const friendship = await prisma.friendship.findFirst({
         where: {
             OR: [
@@ -39,7 +48,6 @@ export const sendFriendRequest = async (senderId, receiverId) => {
         throw new AppError("You are already friends.", 409);
     }
 
-    // Existing pending request
     const existingRequest = await prisma.friendRequest.findFirst({
         where: {
             OR: [
@@ -77,7 +85,9 @@ export const getPendingRequests = async (userId) => {
             sender: {
                 select: {
                     id: true,
-                    username: true
+                    username: true,
+
+                    avatarUrl: true
                 }
             }
         },
@@ -165,13 +175,19 @@ export const getFriends = async (userId) => {
             user1: {
                 select: {
                     id: true,
-                    username: true
+                    username: true,
+
+                    avatarUrl: true,
+                    lastSeenAt: true
                 }
             },
             user2: {
                 select: {
                     id: true,
-                    username: true
+                    username: true,
+
+                    avatarUrl: true,
+                    lastSeenAt: true
                 }
             }
         }
@@ -182,4 +198,38 @@ export const getFriends = async (userId) => {
             ? friendship.user2
             : friendship.user1;
     });
+};
+
+export const getFriendIds = async (userId) => {
+
+    const friendships = await prisma.friendship.findMany({
+        where: {
+            OR: [
+                { user1Id: userId },
+                { user2Id: userId }
+            ]
+        },
+        select: {
+            user1Id: true,
+            user2Id: true
+        }
+    });
+
+    return friendships.map(f => f.user1Id === userId ? f.user2Id : f.user1Id);
+
+};
+
+export const areFriends = async (userAId, userBId) => {
+
+    const friendship = await prisma.friendship.findFirst({
+        where: {
+            OR: [
+                { user1Id: userAId, user2Id: userBId },
+                { user1Id: userBId, user2Id: userAId }
+            ]
+        }
+    });
+
+    return Boolean(friendship);
+
 };

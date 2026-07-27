@@ -1,47 +1,55 @@
 import prisma from "../config/prisma.js";
 import AppError from "../utils/AppError.js";
 import storage from "../storage/index.js";
+import { requireActiveParticipant, assertGroupMessagingAllowed } from "../utils/participant.js";
+import { assertConversationNotBlocked } from "./block.service.js";
 
 export const uploadAttachment = async (
     conversationId,
     senderId,
-    file
+    file,
+    caption
 ) => {
 
-    const participant =
-        await prisma.conversationParticipant.findUnique({
-            where: {
-                conversationId_userId: {
-                    conversationId,
-                    userId: senderId
-                }
-            }
-        });
+    await requireActiveParticipant(
+    conversationId,
+    senderId
+);
 
-    if (!participant) {
-        throw new AppError(
-            "Conversation not found.",
-            404
-        );
-    }
+    await assertConversationNotBlocked(conversationId, senderId);
+    await assertGroupMessagingAllowed(conversationId, senderId);
+
+    const trimmedCaption = caption?.trim().slice(0, 2000) || null;
 
     return prisma.$transaction(async (tx) => {
 
         const message = await tx.message.create({
+    data: {
+        conversationId,
+        senderId,
+        content: trimmedCaption,
+        type: file.mimetype.startsWith("image/")
+            ? "IMAGE"
+            : "FILE"
+    },
 
-            data: {
+    include: {
+        sender: {
+            select: {
+                id: true,
+                username: true,
 
-                conversationId,
-
-                senderId,
-
-                type: file.mimetype.startsWith("image/")
-                    ? "IMAGE"
-                    : "FILE"
-
+                avatarUrl: true
             }
+        },
 
-        });
+        reads: {
+            select: {
+                userId: true
+            }
+        }
+    }
+});
 
         const uploaded = await storage.upload(file);
         const attachment =
@@ -76,12 +84,9 @@ export const uploadAttachment = async (
         });
 
         return {
-
-            ...message,
-
-            attachment
-
-        };
+    ...message,
+    attachment
+};
 
     });
 

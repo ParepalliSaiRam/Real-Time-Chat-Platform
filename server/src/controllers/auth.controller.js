@@ -1,13 +1,9 @@
-import { registerSchema } from "../validations/auth.validation.js";
 import { registerUser } from "../services/auth.service.js";
 import asyncHandler from "../utils/asyncHandler.js";
-import { loginSchema } from "../validations/auth.validation.js";
 import { loginUser } from "../services/auth.service.js";
 
 export const register = asyncHandler(async (req, res) => {
-    const data = registerSchema.parse(req.body);
-
-    await registerUser(data);
+    await registerUser(req.body);
 
     res.status(201).json({
         success: true,
@@ -16,9 +12,7 @@ export const register = asyncHandler(async (req, res) => {
 });
 
 export const login = asyncHandler(async (req, res) => {
-    const data = loginSchema.parse(req.body);
-
-    const result = await loginUser(data);
+    const result = await loginUser(req.body);
 
     res.status(200).json({
         success: true,

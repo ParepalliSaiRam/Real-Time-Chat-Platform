@@ -6,13 +6,27 @@ import asyncHandler from "../utils/asyncHandler.js";
 const authMiddleware = asyncHandler(async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const bearerToken =
+        authHeader && authHeader.startsWith("Bearer ")
+            ? authHeader.split(" ")[1]
+            : null;
+
+    const token = req.cookies?.accessToken || bearerToken;
+
+    if (!token) {
         throw new AppError("Unauthorized", 401);
     }
 
-    const token = authHeader.split(" ")[1];
+    let decoded;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+try {
+    decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET
+    );
+} catch {
+    throw new AppError("Invalid or expired token.", 401);
+}
 
     const user = await prisma.user.findUnique({
         where: {
@@ -21,7 +35,9 @@ const authMiddleware = asyncHandler(async (req, res, next) => {
         select: {
             id: true,
             username: true,
-            email: true
+            email: true,
+            avatarUrl: true,
+            bio: true
         }
     });
 

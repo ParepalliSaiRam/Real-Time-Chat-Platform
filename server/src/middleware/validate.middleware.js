@@ -12,7 +12,7 @@ const validate = (schema) => {
 
                 message: "Validation failed.",
 
-                errors: result.error.flatten()
+                errors: result.error.issues
 
             });
 

@@ -1,64 +1,58 @@
-import prisma from "../config/prisma.js";
 import { sendMessage } from "../services/message.service.js";
+import { getParticipantIds } from "../services/conversation.service.js";
+import { requireParticipant } from "../utils/participant.js";
+import { emitToUsers, getMessagePreview } from "../utils/broadcast.js";
 
 export const registerChatHandlers = (io, socket) => {
+  socket.on("join-conversation", async ({ conversationId }) => {
+    try {
+      await requireParticipant(
+        conversationId,
+        socket.user.id
+      );
 
-    socket.on("join-conversation", async ({ conversationId }) => {
+      socket.join(`conversation:${conversationId}`);
 
-        const participant =
-            await prisma.conversationParticipant.findUnique({
-                where: {
-                    conversationId_userId: {
-                        conversationId,
-                        userId: socket.user.id
-                    }
-                }
-            });
+      socket.emit("joined-conversation", {
+        conversationId,
+      });
+    } catch (error) {
+      socket.emit("error-message", {
+        message: error.message,
+      });
+    }
+  });
 
-        if (!participant) {
+  socket.on("leave-conversation", ({ conversationId }) => {
+    socket.leave(`conversation:${conversationId}`);
+  });
 
-            socket.emit("error-message", {
-                message: "Unauthorized conversation."
-            });
+  socket.on("send-message", async ({ conversationId, content, replyToId }) => {
+    try {
+      const message = await sendMessage(
+        conversationId,
+        socket.user.id,
+        content,
+        replyToId
+      );
 
-            return;
-        }
+      io.to(`conversation:${conversationId}`).emit(
+        "new-message",
+        message
+      );
 
-        socket.join(`conversation:${conversationId}`);
+      const participantIds = await getParticipantIds(conversationId);
 
-        socket.emit("joined-conversation", {
-            conversationId
-        });
-
-    });
-
-    socket.on("leave-conversation", ({ conversationId }) => {
-
-        socket.leave(`conversation:${conversationId}`);
-
-    });
-
-    socket.on("send-message", async (data) => {
-
-        try {
-
-            const message = await sendMessage(
-                data.conversationId,
-                socket.user.id,
-                data.content
-            );
-
-            io.to(`conversation:${data.conversationId}`)
-                .emit("new-message", message);
-
-        } catch (error) {
-
-            socket.emit("error-message", {
-                message: error.message
-            });
-
-        }
-
-    });
-
+      emitToUsers(io, participantIds, "conversation-updated", {
+        conversationId,
+        lastMessage: getMessagePreview(message),
+        lastMessageAt: message.createdAt,
+        senderId: message.senderId,
+      });
+    } catch (error) {
+      socket.emit("error-message", {
+        message: error.message,
+      });
+    }
+  });
 };

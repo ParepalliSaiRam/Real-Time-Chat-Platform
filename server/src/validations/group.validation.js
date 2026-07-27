@@ -24,10 +24,36 @@ export const renameGroupSchema = z.object({
 
 });
 
-export const transferAdminSchema = z.object({
+export const updateDescriptionSchema = z.object({
+
+    description: z
+        .string()
+        .trim()
+        .max(500, "Description cannot exceed 500 characters.")
+        .optional()
+
+});
+
+export const addMembersSchema = z.object({
+
+    members: z
+        .array(z.string().cuid())
+        .min(1, "Select at least one member.")
+
+});
+
+export const adminActionSchema = z.object({
 
     userId: z
         .string()
-        .min(1, "New admin userId is required.")
+        .min(1, "userId is required.")
+
+});
+
+export const updateGroupSettingsSchema = z.object({
+
+    onlyAdminsCanEditInfo: z.boolean().optional(),
+
+    onlyAdminsCanMessage: z.boolean().optional()
 
 });

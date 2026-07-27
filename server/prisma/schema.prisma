@@ -15,6 +15,10 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  lastSeenAt DateTime?
+
+  avatarUrl String?
+  bio       String?
 
   sentRequests      FriendRequest[] @relation("Sender")
   receivedRequests  FriendRequest[] @relation("Receiver")
@@ -29,6 +33,31 @@ model User {
   messageReads MessageRead[]
 
   groupConversations Conversation[] @relation("GroupCreator")
+
+  blockedUsers   Block[] @relation("Blocker")
+  blockedByUsers Block[] @relation("Blocked")
+
+  messageReactions MessageReaction[]
+
+  statuses     Status[]
+  statusViews  StatusView[]
+
+  messageDeletions MessageDeletion[]
+}
+
+model Block {
+  id String @id @default(cuid())
+
+  blockerId String
+  blockedId String
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
 }
 
 model FriendRequest {
@@ -65,7 +94,6 @@ model Friendship {
 
 enum FriendRequestStatus {
   PENDING
-  REJECTED
 }
 
 model Conversation {
@@ -76,11 +104,21 @@ model Conversation {
 
   name String?
 
+  description String?
+
+  avatarUrl String?
+
+  onlyAdminsCanEditInfo Boolean @default(false)
+  onlyAdminsCanMessage  Boolean @default(false)
+
+  inviteCode String? @unique
+
   createdById String?
 
   createdBy User? @relation("GroupCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   lastMessageAt DateTime @default(now())
+  @@index([lastMessageAt])
 
   participants ConversationParticipant[]
 
@@ -103,6 +141,11 @@ model ConversationParticipant {
   isAdmin Boolean @default(false)
   joinedAt DateTime @default(now())
 
+  removedAt DateTime?
+
+  mutedAt DateTime?
+
+  @@index([userId])
   @@unique([conversationId, userId])
 }
 
@@ -127,9 +170,57 @@ model Message {
 
   sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
+  @@index([conversationId, createdAt])
+
   attachment Attachment?
 
   reads MessageRead[]
+
+  replyToId String?
+
+  replyTo Message? @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+
+  replies Message[] @relation("MessageReplies")
+
+  reactions MessageReaction[]
+
+  deletions MessageDeletion[]
+}
+
+model MessageDeletion {
+
+  id String @id @default(cuid())
+
+  messageId String
+  userId String
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId])
+  @@index([userId])
+}
+
+model MessageReaction {
+
+  id String @id @default(cuid())
+
+  messageId String
+  userId String
+
+  emoji String
+
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([messageId])
 }
 
 model MessageRead {
@@ -153,6 +244,53 @@ enum MessageType {
   TEXT
   IMAGE
   FILE
+  SYSTEM
+}
+
+model Status {
+
+  id String @id @default(cuid())
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type StatusType @default(TEXT)
+
+  content String?
+
+  mediaUrl String?
+
+  backgroundColor String?
+
+  createdAt DateTime @default(now())
+
+  expiresAt DateTime
+
+  views StatusView[]
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model StatusView {
+
+  id String @id @default(cuid())
+
+  statusId String
+  status Status @relation(fields: [statusId], references: [id], onDelete: Cascade)
+
+  viewerId String
+  viewer User @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  viewedAt DateTime @default(now())
+
+  @@unique([statusId, viewerId])
+  @@index([statusId])
+}
+
+enum StatusType {
+  TEXT
+  IMAGE
 }
 
 model Attachment {

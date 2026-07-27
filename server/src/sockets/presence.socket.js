@@ -1,10 +1,10 @@
+import prisma from "../config/prisma.js";
 import onlineUsers from "./presence.store.js";
 
 export const registerPresenceHandlers = (io, socket) => {
 
     const userId = socket.user.id;
 
-    // Create a Set for the user if it doesn't exist
     if (!onlineUsers.has(userId)) {
         onlineUsers.set(userId, new Set());
     }
@@ -17,8 +17,9 @@ export const registerPresenceHandlers = (io, socket) => {
 
     if (wasOffline) {
         io.emit("user-online", {
-            userId
-        });
+    userId,
+    username: socket.user.username
+});
     }
 
     socket.on("get-online-users", () => {
@@ -28,7 +29,7 @@ export const registerPresenceHandlers = (io, socket) => {
         );
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
 
         console.log(`Disconnected: ${socket.user.username}`);
 
@@ -42,9 +43,22 @@ export const registerPresenceHandlers = (io, socket) => {
 
             onlineUsers.delete(userId);
 
+            const lastSeenAt = new Date();
+
+            try {
+                await prisma.user.update({
+                    where: { id: userId },
+                    data: { lastSeenAt }
+                });
+            } catch (error) {
+                console.error("Failed to record lastSeenAt:", error.message);
+            }
+
             io.emit("user-offline", {
-                userId
-            });
+    userId,
+    username: socket.user.username,
+    lastSeenAt
+});
 
         }
 

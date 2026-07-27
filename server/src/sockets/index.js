@@ -36,7 +36,14 @@ export const initializeSocket = (server) => {
             const user = await prisma.user.findUnique({
                 where: {
                     id: payload.userId
+                },
+                select: {
+                    id: true,
+                    username: true,
+
+                    avatarUrl: true
                 }
+
             });
 
             if (!user) {
@@ -58,6 +65,8 @@ export const initializeSocket = (server) => {
     io.on("connection", (socket) => {
 
         console.log(`Connected: ${socket.user.username}`);
+
+        socket.join(`user:${socket.user.id}`);
 
         registerPresenceHandlers(io, socket);
 

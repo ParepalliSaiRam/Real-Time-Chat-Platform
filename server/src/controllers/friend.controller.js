@@ -1,16 +1,13 @@
 import asyncHandler from "../utils/asyncHandler.js";
-import { sendFriendRequestSchema } from "../validations/friend.validation.js";
 import { sendFriendRequest } from "../services/friend.service.js";
 import { getPendingRequests } from "../services/friend.service.js";
-import { acceptFriendRequestSchema } from "../validations/friend.validation.js";
 import { acceptFriendRequest } from "../services/friend.service.js";
-import { rejectFriendRequestSchema } from "../validations/friend.validation.js";
 import { rejectFriendRequest } from "../services/friend.service.js";
 import { getFriends } from "../services/friend.service.js";
 
 export const sendRequest = asyncHandler(async (req, res) => {
 
-    const { receiverId } = sendFriendRequestSchema.parse(req.body);
+    const { receiverId } = req.body;
 
     await sendFriendRequest(req.user.id, receiverId);
 
@@ -34,7 +31,7 @@ export const getRequests = asyncHandler(async (req, res) => {
 
 export const acceptRequest = asyncHandler(async (req, res) => {
 
-    const { requestId } = acceptFriendRequestSchema.parse(req.body);
+    const { requestId } = req.body;
 
     await acceptFriendRequest(requestId, req.user.id);
 
@@ -47,7 +44,7 @@ export const acceptRequest = asyncHandler(async (req, res) => {
 
 export const rejectRequest = asyncHandler(async (req, res) => {
 
-    const { requestId } = rejectFriendRequestSchema.parse(req.body);
+    const { requestId } = req.body;
 
     await rejectFriendRequest(requestId, req.user.id);
 

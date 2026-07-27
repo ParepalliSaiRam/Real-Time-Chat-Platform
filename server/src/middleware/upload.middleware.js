@@ -1,29 +1,7 @@
 import multer from "multer";
-import path from "path";
+import AppError from "../utils/AppError.js";
 
-const storage = multer.diskStorage({
-
-    destination(req, file, cb) {
-
-        cb(null, "uploads/");
-    },
-
-    filename(req, file, cb) {
-
-        const uniqueName =
-            Date.now() +
-            "-" +
-            Math.round(Math.random() * 1e9);
-
-        cb(
-            null,
-            uniqueName +
-            path.extname(file.originalname)
-        );
-
-    }
-
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
 
@@ -43,7 +21,12 @@ const fileFilter = (req, file, cb) => {
 
     } else {
 
-        cb(new Error("Unsupported file type"));
+        cb(
+    new AppError(
+        "Only PNG, JPEG and PDF files are allowed.",
+        400
+    )
+);
 
     }
 

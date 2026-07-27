@@ -13,19 +13,37 @@ import friendRoutes from "./routes/friend.routes.js";
 import conversationRoutes from "./routes/conversation.routes.js";
 import attachmentRoutes from "./routes/attachment.routes.js";
 import groupRoutes from "./routes/group.routes.js";
+import messageRoutes from "./routes/message.routes.js";
+import statusRoutes from "./routes/status.routes.js";
 
 dotenv.config();
 
 const app = express();
 
-app.use(helmet());
-app.use(cors());
+app.use(helmet({
+    crossOriginResourcePolicy: {
+        policy: "cross-origin"
+    }
+}));
+app.use(cors({
 
-app.use(express.json());
+    origin: process.env.CLIENT_URL,
+
+    credentials: true
+
+}));
+
+app.use(express.json({
+    limit: "10mb"
+}));
 
 app.use(cookieParser());
 
 app.use(morgan("dev"));
+
+app.use(express.urlencoded({
+    extended: true
+}));
 
 app.use(
     "/uploads",
@@ -35,18 +53,24 @@ app.use(
 app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/users", userRoutes);
 app.use("/api/friends", friendRoutes);
 app.use("/api/conversations", conversationRoutes);
+app.use("/api/conversations", messageRoutes);
 app.use("/api/conversations", attachmentRoutes);
 app.use("/api/groups", groupRoutes);
-app.use(errorHandler);
-
+app.use("/api/statuses", statusRoutes);
 app.get("/", (req, res) => {
     res.json({
         success: true,
         message: "Server is running 🚀"
     });
 });
+app.use((req,res)=>{
+    res.status(404).json({
+        success:false,
+        message:"Route not found."
+    });
+});
+app.use(errorHandler);
 
 export default app;

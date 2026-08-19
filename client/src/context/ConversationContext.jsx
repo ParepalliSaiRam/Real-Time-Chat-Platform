@@ -43,8 +43,15 @@ export function ConversationProvider({ children }) {
   };
 
   useEffect(() => {
+    if (!user) {
+      setConversations([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     loadConversations();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (user) requestNotificationPermission();

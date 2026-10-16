@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { getFileUrl } from "../../utils/fileUrl";
 import { colorForName, initialsForName } from "../../utils/avatarColor";
 import { useAvatarPreview } from "../../context/AvatarPreviewContext";
@@ -16,6 +17,11 @@ const ICON_SIZES = {
 
 export default function Avatar({ name = "?", size = "md", online, src, icon: Icon }) {
   const avatarPreview = useAvatarPreview();
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [src]);
 
   const initials = initialsForName(name);
 
@@ -30,11 +36,12 @@ export default function Avatar({ name = "?", size = "md", online, src, icon: Ico
       className="relative inline-flex shrink-0 cursor-pointer"
       onClick={handleClick}
     >
-      {src ? (
+      {src && !imageFailed ? (
         <img
           src={getFileUrl(src)}
           alt={name}
           className={`rounded-full object-cover ${SIZES[size]}`}
+          onError={() => setImageFailed(true)}
         />
       ) : Icon ? (
         <div

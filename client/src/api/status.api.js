@@ -1,9 +1,10 @@
 import api from "./axios";
 
-export async function createStatus({ type, content, backgroundColor, file }) {
+export async function createStatus({ type, content, backgroundColor, audience, file }) {
   const formData = new FormData();
 
   formData.append("type", type);
+  if (audience) formData.append("audience", audience);
 
   if (content) formData.append("content", content);
   if (backgroundColor) formData.append("backgroundColor", backgroundColor);

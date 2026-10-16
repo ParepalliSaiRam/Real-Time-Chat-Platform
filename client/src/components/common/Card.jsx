@@ -4,10 +4,12 @@ export default function Card({ children }) {
       className="
         w-full
         max-w-md
-        rounded-2xl
+        rounded-3xl
+        border border-slate-200
         bg-white
-        p-8
-        shadow-xl
+        p-6
+        shadow-lg shadow-slate-900/5
+        sm:p-8
       "
     >
       {children}

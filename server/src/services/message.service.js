@@ -195,6 +195,41 @@ export const searchMessages = async (conversationId, userId, query) => {
 
 };
 
+export const searchMessagesAcrossConversations = async (userId, query) => {
+  const trimmed = query.trim();
+  if (!trimmed) return { results: [] };
+
+  const results = await prisma.message.findMany({
+    where: {
+      isDeleted: false,
+      type: "TEXT",
+      content: {
+        contains: trimmed,
+        mode: "insensitive"
+      },
+      conversation: {
+        participants: {
+          some: { userId }
+        }
+      },
+      ...excludingDeletedFor(userId)
+    },
+    include: {
+      sender: {
+        select: {
+          id: true,
+          username: true,
+          avatarUrl: true
+        }
+      }
+    },
+    orderBy: { createdAt: "desc" },
+    take: 50
+  });
+
+  return { results };
+};
+
 export const sendMessage = async (conversationId, senderId, content, replyToId = null) => {
   await requireActiveParticipant(conversationId, senderId);
   await assertConversationNotBlocked(conversationId, senderId);
@@ -304,16 +339,16 @@ export const deleteMessage = async (messageId, userId) => {
     throw new AppError("System messages cannot be deleted.", 400);
   }
 
-  return prisma.message.update({
-    where: {
-      id: messageId,
-    },
+  return prisma.$transaction(async (tx) => {
+    await tx.messageReaction.deleteMany({
+      where: { messageId },
+    });
 
-    data: {
-      isDeleted: true,
-    },
-
-    include: messageInclude,
+    return tx.message.update({
+      where: { id: messageId },
+      data: { isDeleted: true },
+      include: messageInclude,
+    });
   });
 };
 

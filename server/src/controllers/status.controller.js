@@ -20,14 +20,16 @@ export const createStatusController = asyncHandler(async (req, res) => {
 
     const status = await createStatus(req.user.id, {
         type: req.body.type,
+        audience: req.body.audience,
         content: req.body.content,
         backgroundColor: req.body.backgroundColor,
         file: req.file
     });
 
-    const friendIds = await getFriendIds(req.user.id);
-
-    emitToUsers(getIO(), friendIds, "status-created", { status });
+    if (status.audience === "FRIENDS") {
+        const friendIds = await getFriendIds(req.user.id);
+        emitToUsers(getIO(), friendIds, "status-created", { status });
+    }
 
     res.status(201).json({
 
@@ -95,14 +97,16 @@ export const getViewersController = asyncHandler(async (req, res) => {
 
 export const deleteStatusController = asyncHandler(async (req, res) => {
 
-    await deleteStatus(req.params.id, req.user.id);
+    const status = await deleteStatus(req.params.id, req.user.id);
 
-    const friendIds = await getFriendIds(req.user.id);
+    if (status.audience === "FRIENDS") {
+        const friendIds = await getFriendIds(req.user.id);
 
-    emitToUsers(getIO(), friendIds, "status-deleted", {
-        statusId: req.params.id,
-        userId: req.user.id
-    });
+        emitToUsers(getIO(), friendIds, "status-deleted", {
+            statusId: req.params.id,
+            userId: req.user.id
+        });
+    }
 
     res.json({
 

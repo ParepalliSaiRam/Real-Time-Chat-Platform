@@ -13,6 +13,7 @@ import {
   Copy,
   Forward,
   CheckSquare,
+  MoreHorizontal,
 } from "lucide-react";
 
 import { useAuth } from "../../context/AuthContext";
@@ -132,6 +133,7 @@ export default function MessageList() {
   const [reactionPickerFor, setReactionPickerFor] = useState(null);
   const [deleteMenuFor, setDeleteMenuFor] = useState(null);
   const [showBulkDeleteMenu, setShowBulkDeleteMenu] = useState(false);
+  const [mobileActionsFor, setMobileActionsFor] = useState(null);
 
   const startEdit = (message) => {
     setEditingId(message.id);
@@ -257,12 +259,22 @@ export default function MessageList() {
       const previousDateKey = previousMessage
         ? format(new Date(previousMessage.createdAt), "yyyy-MM-dd")
         : null;
+      const groupedWithPrevious = Boolean(
+        previousMessage &&
+          message.type !== "SYSTEM" &&
+          previousMessage.type !== "SYSTEM" &&
+          previousMessage.sender?.id === message.sender?.id &&
+          dateKey === previousDateKey &&
+          messageDate.getTime() - new Date(previousMessage.createdAt).getTime() <=
+            5 * 60 * 1000
+      );
 
       return {
         message,
         messageDate,
         dateKey,
         showDateSeparator: dateKey !== previousDateKey,
+        groupedWithPrevious,
       };
     });
   }, [messages]);
@@ -408,7 +420,9 @@ export default function MessageList() {
   };
 
   const renderReactions = (message) => {
-    if (!message.reactions || message.reactions.length === 0) return null;
+    if (message.isDeleted || !message.reactions || message.reactions.length === 0) {
+      return null;
+    }
 
     const grouped = message.reactions.reduce((acc, reaction) => {
       if (!acc[reaction.emoji]) acc[reaction.emoji] = [];
@@ -508,7 +522,7 @@ export default function MessageList() {
       <div
       ref={containerRef}
       onScroll={handleScroll}
-      className="relative flex-1 overflow-y-auto p-6"
+      className="relative flex-1 overflow-x-hidden overflow-y-auto bg-slate-50/60 px-3 py-3 sm:px-7 sm:py-5"
     >
       {loadingMore && (
         <div className="mb-3 flex items-center justify-center gap-2 text-sm text-gray-500">
@@ -535,9 +549,9 @@ export default function MessageList() {
         </div>
       )}
 
-      <div className="space-y-5">
+      <div className="space-y-1">
         {messagesWithSeparators.map(
-          ({ message, messageDate, dateKey, showDateSeparator }) => {
+          ({ message, messageDate, dateKey, showDateSeparator, groupedWithPrevious }) => {
             const separator = showDateSeparator && (
               <div
                 key={`date-${dateKey}`}
@@ -581,7 +595,7 @@ export default function MessageList() {
           const isHighlighted = highlightedMessageId === message.id;
 
           const actionsRow = !isEditing && (
-            <div className="relative mb-1 flex shrink-0 items-center gap-1 opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
+            <div className="relative flex shrink-0 items-center gap-0.5 rounded-xl border border-slate-200 bg-white/95 p-1 shadow-sm backdrop-blur">
               {canEdit && (
                 <button
                   onClick={() => startEdit(message)}
@@ -697,34 +711,59 @@ export default function MessageList() {
           );
 
           return (
-            <div key={message.id}>
+            <div key={message.id} className={groupedWithPrevious ? "pt-0.5" : "pt-3"}>
               {separator}
               <div
               data-message-id={message.id}
-              className={`group flex items-end gap-2 ${
+              className={`group/message-row relative flex items-end gap-2 ${
                 isMine ? "justify-end" : "justify-start"
               }`}
             >
-              {selectionMode ? (
+              {selectionMode && (
                 <input
                   type="checkbox"
                   checked={selectedIds.includes(message.id)}
                   onChange={() => toggleSelect(message.id)}
                   className="mb-1 h-4 w-4 shrink-0"
                 />
-              ) : (
-                isMine && actionsRow
               )}
 
-              <div className="flex min-w-0 max-w-[75%] flex-col" style={{ alignItems: isMine ? "flex-end" : "flex-start" }}>
+              <div className={`relative flex min-w-0 max-w-[75%] flex-col ${isMine ? "items-end" : "items-start"}`}>
+                {!selectionMode && actionsRow && (
+                  <>
+                    <div
+                      className={`pointer-events-none absolute top-1/2 z-20 hidden -translate-y-1/2 opacity-0 transition-opacity group-hover/message-row:pointer-events-auto group-hover/message-row:opacity-100 group-focus-within/message-row:pointer-events-auto group-focus-within/message-row:opacity-100 md:block ${
+                        isMine ? "right-full mr-2" : "left-full ml-2"
+                      }`}
+                    >
+                    {actionsRow}
+                    </div>
+                    <div className={`absolute top-1/2 z-20 -translate-y-1/2 md:hidden ${isMine ? "right-full mr-1" : "left-full ml-1"}`}>
+                      <button
+                        type="button"
+                        aria-label="Message actions"
+                        aria-expanded={mobileActionsFor === message.id}
+                        onClick={() => setMobileActionsFor((current) => current === message.id ? null : message.id)}
+                        className="rounded-full border border-slate-200 bg-white p-1.5 text-slate-500 shadow-sm"
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+                      {mobileActionsFor === message.id && (
+                        <div className={`absolute bottom-full z-30 mb-1 ${isMine ? "right-0" : "left-0"}`}>
+                          {actionsRow}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
                 <div
-                  className={`w-fit max-w-full rounded-lg px-6 py-3 text-[15px] leading-relaxed shadow-sm transition-colors ${
+                  className={`w-fit max-w-full rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed shadow-sm transition-colors ${
                     isMine
-                      ? "bg-blue-600 text-white"
-                      : "border border-gray-200 bg-white"
+                      ? "rounded-br-md bg-blue-600 text-white"
+                      : "rounded-bl-md border border-gray-200 bg-white"
                   } ${isHighlighted ? "ring-2 ring-amber-400" : ""}`}
                 >
-                {!isMine && (
+                {!isMine && !groupedWithPrevious && (
                   <div className="mb-1 text-xs font-semibold text-gray-500">
                     {message.sender.username}
                   </div>
@@ -779,7 +818,6 @@ export default function MessageList() {
                 {renderReactions(message)}
               </div>
 
-              {!selectionMode && !isMine && actionsRow}
               </div>
             </div>
           );

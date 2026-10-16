@@ -1,10 +1,11 @@
 import { Router } from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
-import { create,getAll,toggleMuteController } from "../controllers/conversation.controller.js";
+import { create,getAll,setMuteController } from "../controllers/conversation.controller.js";
 import validate from "../middleware/validate.middleware.js";
 import {
     createConversationSchema
 } from "../validations/conversation.validation.js";
+import { muteConversationSchema } from "../validations/conversation.validation.js";
 
 const router = Router();
 
@@ -24,7 +25,8 @@ router.get(
 router.patch(
     "/:id/mute",
     authMiddleware,
-    toggleMuteController
+    validate(muteConversationSchema),
+    setMuteController
 );
 
 export default router;

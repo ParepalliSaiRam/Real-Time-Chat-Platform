@@ -4,6 +4,8 @@ export const createStatusSchema = z.object({
 
     type: z.enum(["TEXT", "IMAGE"]),
 
+    audience: z.enum(["FRIENDS", "ONLY_ME"]).default("FRIENDS"),
+
     content: z
         .string()
         .trim()

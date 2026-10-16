@@ -203,6 +203,7 @@ export function MessageProvider({ children }) {
                 isDeleted: true,
                 content:
                   "This message was deleted.",
+                reactions: [],
               }
             : message
         )

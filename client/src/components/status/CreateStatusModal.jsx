@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Image as ImageIcon, Type } from "lucide-react";
+import { Image as ImageIcon, LockKeyhole, Type, UsersRound } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { createStatus } from "../../api/status.api";
@@ -26,6 +26,7 @@ export default function CreateStatusModal({ open, onClose, onCreated }) {
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [caption, setCaption] = useState("");
+  const [audience, setAudience] = useState("FRIENDS");
   const [posting, setPosting] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -38,6 +39,7 @@ export default function CreateStatusModal({ open, onClose, onCreated }) {
     setFile(null);
     setPreviewUrl(null);
     setCaption("");
+    setAudience("FRIENDS");
   }, [open]);
 
   useEffect(() => {
@@ -74,14 +76,14 @@ export default function CreateStatusModal({ open, onClose, onCreated }) {
           return;
         }
 
-        await createStatus({ type: "TEXT", content: text.trim(), backgroundColor: color });
+        await createStatus({ type: "TEXT", content: text.trim(), backgroundColor: color, audience });
       } else {
         if (!file) {
           toast.error("Choose a photo first.");
           return;
         }
 
-        await createStatus({ type: "IMAGE", content: caption.trim(), file });
+        await createStatus({ type: "IMAGE", content: caption.trim(), audience, file });
       }
 
       toast.success("Status posted.");
@@ -115,6 +117,35 @@ export default function CreateStatusModal({ open, onClose, onCreated }) {
       }
     >
       <div className="flex flex-col gap-4">
+        <fieldset>
+          <legend className="mb-2 text-sm font-medium text-slate-700">Who can see this?</legend>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { value: "FRIENDS", label: "My friends", Icon: UsersRound },
+              { value: "ONLY_ME", label: "Only me", Icon: LockKeyhole },
+            ].map(({ value, label, Icon }) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={audience === value}
+                onClick={() => setAudience(value)}
+                className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
+                  audience === value
+                    ? "border-blue-300 bg-blue-50 text-blue-700 ring-2 ring-blue-100"
+                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <Icon size={16} /> {label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-slate-500">
+            {audience === "FRIENDS"
+              ? "Visible to your friends for 24 hours."
+              : "Saved to your status feed and visible only to you."}
+          </p>
+        </fieldset>
+
         <div className="flex gap-2">
           <button
             onClick={() => setMode("text")}

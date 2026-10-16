@@ -50,7 +50,7 @@ export default function JoinGroup() {
 
   if (status === "error") {
     return (
-      <div className="mx-auto flex max-w-sm flex-col items-center gap-4 rounded-xl border bg-white p-8 text-center shadow-sm">
+      <div className="surface mx-auto flex w-full max-w-sm flex-col items-center gap-4 p-6 text-center sm:p-8">
         <h1 className="text-lg font-semibold text-gray-800">
           Couldn't join group
         </h1>
@@ -63,7 +63,7 @@ export default function JoinGroup() {
   }
 
   return (
-    <div className="mx-auto flex max-w-sm flex-col items-center gap-3 rounded-xl border bg-white p-8 text-center shadow-sm">
+    <div className="surface mx-auto flex w-full max-w-sm flex-col items-center gap-3 p-6 text-center sm:p-8">
       <Spinner size={24} />
       <p className="text-sm text-gray-500">Joining group...</p>
     </div>

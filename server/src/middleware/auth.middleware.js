@@ -36,6 +36,7 @@ try {
             id: true,
             username: true,
             email: true,
+            phone: true,
             avatarUrl: true,
             bio: true
         }

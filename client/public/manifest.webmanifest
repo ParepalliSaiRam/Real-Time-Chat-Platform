@@ -1,0 +1,19 @@
+{
+  "name": "ChatPlatform",
+  "short_name": "ChatPlatform",
+  "description": "Private conversations with friends and groups.",
+  "start_url": "/conversations",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/brand-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

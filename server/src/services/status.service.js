@@ -28,7 +28,7 @@ const notExpired = {
     }
 };
 
-export const createStatus = async (userId, { type, content, backgroundColor, file }) => {
+export const createStatus = async (userId, { type, content, backgroundColor, audience = "FRIENDS", file }) => {
 
     const trimmedContent = content?.trim() || null;
 
@@ -43,6 +43,7 @@ export const createStatus = async (userId, { type, content, backgroundColor, fil
         return prisma.status.create({
             data: {
                 userId,
+                audience,
                 type: "IMAGE",
                 content: trimmedContent,
                 mediaUrl: uploaded.url,
@@ -60,6 +61,7 @@ export const createStatus = async (userId, { type, content, backgroundColor, fil
     return prisma.status.create({
         data: {
             userId,
+            audience,
             type: "TEXT",
             content: trimmedContent,
             backgroundColor: backgroundColor || "#1e88e5",
@@ -76,8 +78,10 @@ export const getFeed = async (userId) => {
 
     const statuses = await prisma.status.findMany({
         where: {
-            userId: { in: [userId, ...friendIds] },
-            ...notExpired
+            OR: [
+                { userId, ...notExpired },
+                { userId: { in: friendIds }, audience: "FRIENDS", ...notExpired }
+            ]
         },
         include: statusInclude,
         orderBy: {
@@ -139,6 +143,7 @@ export const getUserStatuses = async (viewerId, targetUserId) => {
     return prisma.status.findMany({
         where: {
             userId: targetUserId,
+            ...(viewerId !== targetUserId ? { audience: "FRIENDS" } : {}),
             ...notExpired
         },
         include: statusInclude,
@@ -160,6 +165,10 @@ export const markViewed = async (statusId, viewerId) => {
     }
 
     if (status.userId === viewerId) return;
+
+    if (status.audience !== "FRIENDS") {
+        throw new AppError("This status is private.", 403);
+    }
 
     const friends = await areFriends(viewerId, status.userId);
 
@@ -230,5 +239,7 @@ export const deleteStatus = async (statusId, userId) => {
     await prisma.status.delete({
         where: { id: statusId }
     });
+
+    return status;
 
 };

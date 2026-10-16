@@ -33,8 +33,8 @@ export default function FriendSearch() {
   }, [query]);
 
   return (
-    <section className="rounded-xl border bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-xl font-semibold">
+    <section className="surface p-4 sm:p-6">
+      <h2 className="mb-4 text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
         Search Users
       </h2>
 

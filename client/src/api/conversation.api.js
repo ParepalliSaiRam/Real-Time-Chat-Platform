@@ -13,7 +13,9 @@ export async function createConversation(userId) {
   return data;
 }
 
-export async function muteConversation(conversationId) {
-  const { data } = await api.patch(`/conversations/${conversationId}/mute`);
+export async function muteConversation(conversationId, duration) {
+  const { data } = await api.patch(`/conversations/${conversationId}/mute`, {
+    duration,
+  });
   return data;
 }

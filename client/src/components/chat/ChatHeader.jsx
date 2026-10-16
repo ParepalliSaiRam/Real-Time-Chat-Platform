@@ -66,7 +66,7 @@ export default function ChatHeader({
         type="button"
         onClick={() => setSelectedConversation(null)}
         title="Back to conversations"
-        className="shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-100 md:hidden"
+        className="shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-100 lg:hidden"
       >
         <ArrowLeft size={20} />
       </button>
@@ -74,7 +74,7 @@ export default function ChatHeader({
       <button
         type="button"
         onClick={onOpenInfo}
-        className="flex flex-1 items-center gap-3 rounded-lg text-left"
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left"
       >
         {isGroup ? (
           <Avatar name={title} src={conversation.avatarUrl} icon={Users} />
@@ -82,8 +82,8 @@ export default function ChatHeader({
           <Avatar name={title} src={conversation.user?.avatarUrl} online={isOtherUserOnline} />
         )}
 
-        <div>
-          <h2 className="text-lg font-semibold">{title}</h2>
+        <div className="min-w-0">
+          <h2 className="truncate text-lg font-semibold">{title}</h2>
 
           <p
             className={`flex items-center gap-1 text-sm ${

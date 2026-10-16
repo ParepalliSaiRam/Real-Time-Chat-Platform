@@ -15,6 +15,7 @@ import attachmentRoutes from "./routes/attachment.routes.js";
 import groupRoutes from "./routes/group.routes.js";
 import messageRoutes from "./routes/message.routes.js";
 import statusRoutes from "./routes/status.routes.js";
+import pushRoutes from "./routes/push.routes.js";
 
 dotenv.config();
 
@@ -59,6 +60,7 @@ app.use("/api/conversations", messageRoutes);
 app.use("/api/conversations", attachmentRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/statuses", statusRoutes);
+app.use("/api/push", pushRoutes);
 app.get("/", (req, res) => {
     res.json({
         success: true,

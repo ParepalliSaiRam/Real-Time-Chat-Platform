@@ -3,8 +3,9 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   getConversations,
@@ -13,7 +14,6 @@ import {
 import { useSocket } from "./SocketContext";
 import { useAuth } from "./AuthContext";
 import {
-  requestNotificationPermission,
   showNotification,
 } from "../utils/notifications";
 
@@ -22,17 +22,42 @@ const ConversationContext = createContext();
 export function ConversationProvider({ children }) {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const [restoredConversationId, setRestoredConversationId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hasLoadedConversations, setHasLoadedConversations] = useState(false);
 
   const { socket } = useSocket();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const previousUserIdRef = useRef(user?.id);
 
-  const loadConversations = async () => {
+  const loadConversations = async ({ restoreSelection = false } = {}) => {
     try {
       const data = await getConversations();
 
       setConversations(data.conversations);
+      setHasLoadedConversations(true);
+
+      if (restoreSelection && user?.id) {
+        const storageKey = `chat-platform:selected-conversation:${user.id}`;
+        // Keep the selected chat for a page refresh, but let a fresh app
+        // session start at the conversation list after the app is closed.
+        const savedConversationId = window.sessionStorage.getItem(storageKey);
+        const requestedConversationId = new URLSearchParams(window.location.search).get("conversationId");
+        const savedConversation =
+          data.conversations.find((conversation) => conversation.id === requestedConversationId) ??
+          data.conversations.find((conversation) => conversation.id === savedConversationId);
+
+        if (savedConversation) {
+          setSelectedConversation(savedConversation);
+          setRestoredConversationId(savedConversation.id);
+        } else {
+          window.sessionStorage.removeItem(storageKey);
+          setSelectedConversation(null);
+          setRestoredConversationId(null);
+        }
+      }
 
       return data;
     } catch (error) {
@@ -45,17 +70,43 @@ export function ConversationProvider({ children }) {
   useEffect(() => {
     if (!user) {
       setConversations([]);
+      setSelectedConversation(null);
+      setRestoredConversationId(null);
+      setHasLoadedConversations(false);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    loadConversations();
-  }, [user]);
+    setHasLoadedConversations(false);
+    setSelectedConversation(null);
+    setRestoredConversationId(null);
+    loadConversations({ restoreSelection: true });
+  }, [user?.id]);
 
   useEffect(() => {
-    if (user) requestNotificationPermission();
-  }, [user]);
+    if (!user?.id) return;
+
+    if (previousUserIdRef.current !== user.id) {
+      previousUserIdRef.current = user.id;
+      return;
+    }
+
+    if (loading || !hasLoadedConversations) return;
+
+    const storageKey = `chat-platform:selected-conversation:${user.id}`;
+    if (selectedConversation?.id) {
+      window.sessionStorage.setItem(storageKey, selectedConversation.id);
+    } else {
+      window.sessionStorage.removeItem(storageKey);
+    }
+  }, [selectedConversation?.id, user?.id, loading, hasLoadedConversations]);
+
+  const completeConversationRestore = (conversationId) => {
+    setRestoredConversationId((current) =>
+      current === conversationId ? null : current
+    );
+  };
 
   const startConversation = async (userId) => {
     const data = await createConversation(userId);
@@ -125,9 +176,16 @@ export function ConversationProvider({ children }) {
         }
 
         const isOwnMessage = senderId === user.id;
-        const isOpen = selectedConversation?.id === conversationId;
+        const isOpen =
+          selectedConversation?.id === conversationId &&
+          location.pathname === "/conversations";
 
-        if (!isOwnMessage && !existing.mutedAt && (!isOpen || document.hidden)) {
+        const isMuted = Boolean(
+          existing.mutedAt &&
+            (!existing.mutedUntil || new Date(existing.mutedUntil) > new Date())
+        );
+
+        if (!isOwnMessage && !isMuted && (!isOpen || document.hidden)) {
           const title = existing.isGroup
             ? existing.name ?? "Group"
             : existing.user?.username ?? "New message";
@@ -135,6 +193,8 @@ export function ConversationProvider({ children }) {
           showNotification(title, {
             body: lastMessage,
             icon: existing.isGroup ? existing.avatarUrl : existing.user?.avatarUrl,
+            userId: user.id,
+            conversationId,
             onClick: () => {
               setSelectedConversation(existing);
               navigate("/conversations");
@@ -146,6 +206,7 @@ export function ConversationProvider({ children }) {
           ...existing,
           lastMessage,
           lastMessageAt,
+          hasMessages: true,
           unreadCount:
             isOwnMessage || isOpen
               ? existing.unreadCount ?? 0
@@ -362,7 +423,7 @@ export function ConversationProvider({ children }) {
       socket.off("admin-demoted", handleAdminDemoted);
       socket.off("group-settings-updated", handleGroupSettingsUpdated);
     };
-  }, [socket, user, selectedConversation?.id]);
+  }, [socket, user, selectedConversation?.id, location.pathname]);
 
   return (
     <ConversationContext.Provider
@@ -370,6 +431,8 @@ export function ConversationProvider({ children }) {
         conversations,
         selectedConversation,
         setSelectedConversation,
+        restoredConversationId,
+        completeConversationRestore,
         loading,
         loadConversations,
         startConversation,

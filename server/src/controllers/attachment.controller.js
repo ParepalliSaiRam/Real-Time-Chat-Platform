@@ -4,6 +4,7 @@ import { getParticipantIds } from "../services/conversation.service.js";
 import { getIO } from "../sockets/index.js";
 import { emitToUsers, getMessagePreview } from "../utils/broadcast.js";
 import AppError from "../utils/AppError.js";
+import { notifyConversationPush } from "../services/push.service.js";
 
 export const uploadAttachmentController =
 asyncHandler(async (req, res) => {
@@ -36,6 +37,8 @@ asyncHandler(async (req, res) => {
 
     const participantIds =
         await getParticipantIds(req.params.conversationId);
+
+    void notifyConversationPush(req.params.conversationId, req.user.id, message);
 
     emitToUsers(
         getIO(),

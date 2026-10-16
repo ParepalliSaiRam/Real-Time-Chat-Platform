@@ -2,6 +2,7 @@ import { sendMessage } from "../services/message.service.js";
 import { getParticipantIds } from "../services/conversation.service.js";
 import { requireParticipant } from "../utils/participant.js";
 import { emitToUsers, getMessagePreview } from "../utils/broadcast.js";
+import { notifyConversationPush } from "../services/push.service.js";
 
 export const registerChatHandlers = (io, socket) => {
   socket.on("join-conversation", async ({ conversationId }) => {
@@ -42,6 +43,8 @@ export const registerChatHandlers = (io, socket) => {
       );
 
       const participantIds = await getParticipantIds(conversationId);
+
+      void notifyConversationPush(conversationId, socket.user.id, message);
 
       emitToUsers(io, participantIds, "conversation-updated", {
         conversationId,

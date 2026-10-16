@@ -5,6 +5,7 @@ import {
     getMessagesController,
     getMessagesAroundController,
     searchMessagesController,
+    searchAllMessagesController,
     sendMessageController,
     editMessageController,
     deleteMessageController,
@@ -21,6 +22,12 @@ import {
 } from "../validations/message.validation.js";
 
 const router = Router();
+
+router.get(
+    "/messages/search",
+    authMiddleware,
+    searchAllMessagesController
+);
 
 router.post(
     "/messages/forward",

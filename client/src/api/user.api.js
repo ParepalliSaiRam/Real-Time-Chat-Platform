@@ -20,8 +20,8 @@ export async function getBlockedUsers() {
   return data;
 }
 
-export async function updateProfile(bio) {
-  const { data } = await api.patch("/users/me", { bio });
+export async function updateProfile(profile) {
+  const { data } = await api.patch("/users/me", profile);
   return data;
 }
 

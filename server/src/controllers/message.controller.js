@@ -3,6 +3,7 @@ import {
     getMessages,
     getMessagesAround,
     searchMessages,
+    searchMessagesAcrossConversations,
     sendMessage,
     editMessage,
     deleteMessage,
@@ -13,6 +14,7 @@ import {
 import { getParticipantIds } from "../services/conversation.service.js";
 import { getIO } from "../sockets/index.js";
 import { emitToUsers, getMessagePreview } from "../utils/broadcast.js";
+import { notifyConversationPush } from "../services/push.service.js";
 
 export const getMessagesController =
 asyncHandler(async (req, res) => {
@@ -81,6 +83,18 @@ asyncHandler(async (req, res) => {
 
 });
 
+export const searchAllMessagesController = asyncHandler(async (req, res) => {
+    const result = await searchMessagesAcrossConversations(
+        req.user.id,
+        req.query.query || ""
+    );
+
+    res.json({
+        success: true,
+        ...result
+    });
+});
+
 export const sendMessageController =
 asyncHandler(async (req, res) => {
 
@@ -103,6 +117,8 @@ asyncHandler(async (req, res) => {
 
     const participantIds =
         await getParticipantIds(req.params.conversationId);
+
+    void notifyConversationPush(req.params.conversationId, req.user.id, message);
 
     emitToUsers(
         getIO(),
@@ -245,6 +261,8 @@ asyncHandler(async (req, res) => {
         }
 
         const lastMessage = messages[messages.length - 1];
+
+        void notifyConversationPush(conversationId, req.user.id, lastMessage);
 
         const participantIds = await getParticipantIds(conversationId);
 

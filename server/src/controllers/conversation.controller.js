@@ -2,7 +2,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import {
     createConversation,
     getConversations,
-    toggleMute
+    setConversationMute
  } from "../services/conversation.service.js";
 
 export const create = asyncHandler(async (req, res) => {
@@ -35,15 +35,20 @@ export const getAll = asyncHandler(async (req, res) => {
 
 });
 
-export const toggleMuteController = asyncHandler(async (req, res) => {
+export const setMuteController = asyncHandler(async (req, res) => {
 
-    const participant = await toggleMute(req.params.id, req.user.id);
+    const participant = await setConversationMute(
+        req.params.id,
+        req.user.id,
+        req.body.duration
+    );
 
     res.json({
 
         success: true,
 
-        mutedAt: participant.mutedAt
+        mutedAt: participant.mutedAt,
+        mutedUntil: participant.mutedUntil
 
     });
 

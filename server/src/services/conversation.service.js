@@ -236,7 +236,17 @@ export const getConversations = async (userId) => {
         isAdmin: conversation.isGroup ? Boolean(currentParticipant?.isAdmin) : undefined,
 
 
-        mutedAt: currentParticipant?.mutedAt ?? null,
+        mutedAt:
+            currentParticipant?.mutedAt &&
+            (!currentParticipant.mutedUntil || currentParticipant.mutedUntil > new Date())
+                ? currentParticipant.mutedAt
+                : null,
+
+        mutedUntil:
+            currentParticipant?.mutedAt &&
+            (!currentParticipant.mutedUntil || currentParticipant.mutedUntil > new Date())
+                ? currentParticipant.mutedUntil
+                : null,
 
         blockedByMe: !conversation.isGroup && otherUser
             ? blockedByMeIds.has(otherUser.id)
@@ -247,6 +257,8 @@ export const getConversations = async (userId) => {
             : undefined,
 
         lastMessage: getMessagePreview(conversation.messages[0]),
+
+        hasMessages: conversation.messages.length > 0,
 
         lastMessageAt:
             conversation.messages[0]?.createdAt ?? conversation.lastMessageAt,
@@ -259,22 +271,27 @@ export const getConversations = async (userId) => {
 
 };
 
-export const toggleMute = async (conversationId, userId) => {
+export const setConversationMute = async (conversationId, userId, duration) => {
+    await requireParticipant(conversationId, userId);
 
-    const participant = await requireParticipant(conversationId, userId);
+    const now = new Date();
+    const durationMs = {
+        "1h": 60 * 60 * 1000,
+        "8h": 8 * 60 * 60 * 1000,
+        "1w": 7 * 24 * 60 * 60 * 1000,
+    }[duration];
 
     return prisma.conversationParticipant.update({
         where: {
-            conversationId_userId: {
-                conversationId,
-                userId
-            }
+            conversationId_userId: { conversationId, userId }
         },
-        data: {
-            mutedAt: participant.mutedAt ? null : new Date()
-        }
+        data: duration === "off"
+            ? { mutedAt: null, mutedUntil: null }
+            : {
+                mutedAt: now,
+                mutedUntil: durationMs ? new Date(now.getTime() + durationMs) : null,
+            }
     });
-
 };
 
 export const getParticipantIds = async (conversationId) => {

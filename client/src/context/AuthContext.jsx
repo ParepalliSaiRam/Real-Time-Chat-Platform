@@ -8,6 +8,10 @@ import {
 import { getCurrentUser } from "../api/user.api";
 
 import { useSocket } from "./SocketContext";
+import {
+  disablePushNotifications,
+  saveNotificationPreference,
+} from "../utils/notifications";
 
 const AuthContext = createContext();
 
@@ -65,6 +69,11 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    if (user?.id) {
+      saveNotificationPreference(user.id, false);
+      void disablePushNotifications().catch(() => {});
+    }
+
     disconnectSocket();
 
     localStorage.removeItem("token");

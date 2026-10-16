@@ -3,7 +3,6 @@ import {
   Users,
   UsersRound,
   CircleDot,
-  MessageCircle,
   LogOut,
   X,
 } from "lucide-react";
@@ -49,21 +48,19 @@ export default function Sidebar({ open, onClose }) {
       {}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/30 md:hidden"
+          className="fixed inset-0 z-40 bg-black/30 lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 shrink-0 transform flex-col border-r border-gray-200 bg-white transition-transform duration-200 md:static md:z-auto md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-full w-[min(17rem,86vw)] shrink-0 transform flex-col border-r border-slate-200 bg-white transition-transform duration-200 lg:static lg:w-[15.5rem] lg:z-auto lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center gap-2 border-b border-gray-200 p-6">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
-            <MessageCircle size={20} strokeWidth={2.5} />
-          </div>
+        <div className="flex min-h-16 items-center gap-3 border-b border-slate-100 px-5 py-4">
+          <img src="/brand-mark.svg" alt="" className="h-9 w-9 shrink-0" />
 
           <h1 className="flex-1 text-xl font-bold text-blue-600">
             ChatPlatform
@@ -71,14 +68,14 @@ export default function Sidebar({ open, onClose }) {
 
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 md:hidden"
+            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 lg:hidden"
           >
             <X size={20} />
           </button>
         </div>
 
-        <nav className="flex-1 p-4">
-          <ul className="space-y-2">
+        <nav className="flex-1 p-3">
+          <ul className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
 
@@ -90,8 +87,8 @@ export default function Sidebar({ open, onClose }) {
                     className={({ isActive }) =>
                       `flex items-center gap-3 rounded-lg px-4 py-3 transition ${
                         isActive
-                          ? "bg-blue-100 text-blue-700 font-semibold"
-                          : "hover:bg-blue-50"
+                          ? "bg-blue-50 text-blue-700 font-semibold ring-1 ring-blue-100"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                       }`
                     }
                   >
@@ -104,7 +101,7 @@ export default function Sidebar({ open, onClose }) {
           </ul>
         </nav>
 
-        <div className="flex items-center gap-3 border-t border-gray-200 p-4">
+        <div className="flex items-center gap-3 border-t border-slate-200 p-4">
           <NavLink
             to="/profile"
             onClick={onClose}

@@ -14,6 +14,7 @@ import {
   Share2,
   Copy,
   RefreshCw,
+  Search,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -51,6 +52,7 @@ export default function InfoPanel({ onClose, conversation }) {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [inviteCode, setInviteCode] = useState(null);
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [memberQuery, setMemberQuery] = useState("");
   const avatarInputRef = useRef(null);
 
   useEffect(() => {
@@ -90,15 +92,27 @@ export default function InfoPanel({ onClose, conversation }) {
 
   const isGroup = conversation.isGroup;
   const isActive = !isGroup || conversation.isActive !== false;
-  const isMuted = Boolean(conversation.mutedAt);
+  const isMuted = Boolean(
+    conversation.mutedAt &&
+      (!conversation.mutedUntil || new Date(conversation.mutedUntil) > new Date())
+  );
   const canEditInfo =
     isGroup && (conversation.isAdmin || !conversation.onlyAdminsCanEditInfo);
 
   const memberIds = new Set(conversation.participants?.map((p) => p.id) ?? []);
   const addableFriends = friends.filter((f) => !memberIds.has(f.id));
+  const filteredMembers = (conversation.participants ?? []).filter((member) =>
+    member.username.toLowerCase().includes(memberQuery.trim().toLowerCase())
+  );
 
+  const inviteBaseUrl = (
+    import.meta.env.VITE_APP_URL ||
+    (import.meta.env.DEV
+      ? "https://real-time-chat-platform-app.vercel.app"
+      : window.location.origin)
+  ).replace(/\/+$/, "");
   const inviteLink = inviteCode
-    ? `${window.location.origin}/groups/join/${inviteCode}`
+    ? `${inviteBaseUrl}/groups/join/${inviteCode}`
     : null;
 
   const run = async (fn) => {
@@ -112,11 +126,14 @@ export default function InfoPanel({ onClose, conversation }) {
     }
   };
 
-  const handleToggleMute = () =>
+  const handleMuteChange = (duration) =>
     run(async () => {
-      const data = await muteConversation(conversation.id);
-      patchConversation(conversation.id, { mutedAt: data.mutedAt });
-      toast.success(data.mutedAt ? "Conversation muted." : "Conversation unmuted.");
+      const data = await muteConversation(conversation.id, duration);
+      patchConversation(conversation.id, {
+        mutedAt: data.mutedAt,
+        mutedUntil: data.mutedUntil,
+      });
+      toast.success(duration === "off" ? "Conversation unmuted." : "Mute settings updated.");
     });
 
   const handleToggleBlock = () =>
@@ -209,7 +226,7 @@ export default function InfoPanel({ onClose, conversation }) {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-y-auto bg-white">
-      <div className="flex items-center gap-2 border-b border-gray-200 p-4">
+      <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-slate-200 bg-white/95 p-4 backdrop-blur">
         <button
           onClick={onClose}
           className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
@@ -222,7 +239,7 @@ export default function InfoPanel({ onClose, conversation }) {
         </h2>
       </div>
 
-        <div className="flex flex-col items-center gap-2 border-b border-gray-200 p-6">
+        <div className="mx-4 mt-4 flex flex-col items-center gap-2 rounded-2xl bg-gradient-to-b from-blue-50/80 to-white px-5 py-6 text-center">
           <div className="relative inline-block">
             <Avatar
               name={isGroup ? conversation.name : conversation.user?.username}
@@ -257,17 +274,17 @@ export default function InfoPanel({ onClose, conversation }) {
 
           {isGroup ? (
             <>
-              <h3 className="text-xl font-semibold">{conversation.name}</h3>
-              <p className="text-sm text-gray-500">
+              <h3 className="max-w-full break-words text-xl font-semibold text-slate-900">{conversation.name}</h3>
+              <p className="text-sm text-slate-500">
                 {(conversation.participants?.length ?? 0) + 1} members
               </p>
             </>
           ) : (
             <>
-              <h3 className="text-xl font-semibold">
+              <h3 className="max-w-full break-words text-xl font-semibold text-slate-900">
                 {conversation.user?.username}
               </h3>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-slate-500">
                 {isOtherUserOnline
                   ? "Online"
                   : formatLastSeen(
@@ -279,7 +296,7 @@ export default function InfoPanel({ onClose, conversation }) {
               </p>
 
               {conversation.user?.bio && (
-                <p className="mt-2 max-w-xs text-center text-sm text-gray-600">
+                <p className="mt-2 max-w-xs whitespace-pre-wrap text-sm leading-6 text-slate-600">
                   {conversation.user.bio}
                 </p>
               )}
@@ -287,22 +304,47 @@ export default function InfoPanel({ onClose, conversation }) {
           )}
         </div>
 
-        <div className="flex flex-col gap-1 border-b border-gray-200 p-4">
-          <button
-            disabled={busy}
-            onClick={handleToggleMute}
-            className="flex items-center gap-3 rounded-lg p-2.5 text-left hover:bg-gray-50 disabled:opacity-60"
-          >
-            {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
-            {isMuted ? "Unmute conversation" : "Mute conversation"}
-          </button>
+        <div className="flex flex-col gap-1 border-b border-slate-200 p-4">
+          <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            Conversation actions
+          </p>
+          <label className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-slate-700">
+            {isMuted ? <BellOff size={18} className="shrink-0" /> : <Bell size={18} className="shrink-0" />}
+            <span className="min-w-0 flex-1 text-sm">Notifications</span>
+            <select
+              disabled={busy}
+              value={
+                !isMuted
+                  ? "off"
+                  : conversation.mutedUntil
+                  ? "timed"
+                  : "forever"
+              }
+              onChange={(e) => handleMuteChange(e.target.value)}
+              aria-label="Notification mute duration"
+              className="max-w-40 rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-blue-400 disabled:opacity-60"
+            >
+              <option value="off">On</option>
+              {conversation.mutedUntil && (
+                <option value="timed" disabled>
+                  Until {new Date(conversation.mutedUntil).toLocaleString()}
+                </option>
+              )}
+              <option value="1h">Mute 1 hour</option>
+              <option value="8h">Mute 8 hours</option>
+              <option value="1w">Mute 1 week</option>
+              <option value="forever">Mute indefinitely</option>
+            </select>
+          </label>
 
           {!isGroup && (
             <button
               disabled={busy}
               onClick={handleToggleBlock}
-              className={`flex items-center gap-3 rounded-lg p-2.5 text-left hover:bg-red-50 disabled:opacity-60 ${
-                conversation.blockedByMe ? "text-gray-700" : "text-red-600"
+              className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition disabled:opacity-60 ${
+                conversation.blockedByMe
+                  ? "border-slate-200 text-slate-700 hover:bg-slate-50"
+                  : "border-red-100 bg-red-50/70 text-red-700 hover:bg-red-50"
               }`}
             >
               {conversation.blockedByMe ? (
@@ -406,15 +448,33 @@ export default function InfoPanel({ onClose, conversation }) {
             )}
 
             <div className="border-b border-gray-200 p-4">
-              <h3 className="mb-2 text-sm font-medium text-gray-700">
-                {(conversation.participants?.length ?? 0) + 1} Members
-              </h3>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-slate-800">
+                  {(conversation.participants?.length ?? 0) + 1} Members
+                </h3>
+                {(conversation.participants?.length ?? 0) > 5 && (
+                  <span className="text-xs text-slate-400">Find a member</span>
+                )}
+              </div>
+
+              {(conversation.participants?.length ?? 0) > 5 && (
+                <label className="mb-3 flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-slate-400 focus-within:border-blue-300 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50">
+                  <Search size={15} className="shrink-0" />
+                  <input
+                    value={memberQuery}
+                    onChange={(e) => setMemberQuery(e.target.value)}
+                    placeholder="Search members"
+                    aria-label="Search group members"
+                    className="w-full min-w-0 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                  />
+                </label>
+              )}
 
               <div className="space-y-2">
-                {(conversation.participants ?? []).map((member) => (
+                {filteredMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 p-2.5"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-2.5"
                   >
                     <div className="flex min-w-0 items-center gap-2">
                       <Avatar name={member.username} src={member.avatarUrl} size="sm" />
@@ -478,6 +538,11 @@ export default function InfoPanel({ onClose, conversation }) {
                     )}
                   </div>
                 ))}
+                {filteredMembers.length === 0 && (
+                  <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">
+                    No members match “{memberQuery}”.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -487,8 +552,8 @@ export default function InfoPanel({ onClose, conversation }) {
                   Group settings
                 </h3>
 
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-3">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-700">
                         Edit group info
@@ -510,7 +575,7 @@ export default function InfoPanel({ onClose, conversation }) {
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-3">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-700">
                         Send messages
@@ -633,7 +698,7 @@ export default function InfoPanel({ onClose, conversation }) {
               </div>
             )}
 
-            <div className="p-4">
+            <div className="mt-2 border-t border-red-100 bg-red-50/40 p-4">
               <button
                 disabled={busy}
                 onClick={() =>
@@ -644,7 +709,7 @@ export default function InfoPanel({ onClose, conversation }) {
                     toast.success("You left the group.");
                   })
                 }
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 py-2.5 text-red-600 hover:bg-red-50 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white py-2.5 font-medium text-red-700 transition hover:bg-red-50 disabled:opacity-60"
               >
                 <LogOut size={16} />
                 Leave group

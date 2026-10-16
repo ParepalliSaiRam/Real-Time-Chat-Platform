@@ -103,7 +103,7 @@ export default function MessageInput() {
 
   if (pendingFile) {
     return (
-      <div className="border-t border-gray-200 p-4">
+      <div className="border-t border-slate-200 bg-white p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:p-4">
         <div className="mb-3 flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-2">
           {pendingPreviewUrl ? (
             <img
@@ -136,15 +136,16 @@ export default function MessageInput() {
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <input
             autoFocus
             type="text"
+            aria-label="Attachment caption"
             value={caption}
             maxLength={2000}
             placeholder="Add a caption..."
             disabled={uploading}
-            className="flex-1 rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 disabled:opacity-60"
+            className="h-12 min-w-0 flex-1 rounded-xl border border-gray-300 px-3 py-3 text-sm outline-none focus:border-blue-500 disabled:opacity-60 sm:px-4 sm:text-base"
             onChange={(e) => setCaption(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -158,10 +159,11 @@ export default function MessageInput() {
             type="button"
             onClick={handleSendAttachment}
             disabled={uploading}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 disabled:opacity-60"
+            aria-label={uploading ? "Sending attachment" : "Send attachment"}
+            className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 text-white hover:bg-blue-700 disabled:opacity-60 sm:px-6"
           >
             <Send size={16} />
-            {uploading ? "Sending..." : "Send"}
+            <span className="hidden sm:inline">{uploading ? "Sending..." : "Send"}</span>
           </button>
         </div>
       </div>
@@ -169,7 +171,7 @@ export default function MessageInput() {
   }
 
   return (
-    <div className="border-t border-gray-200 p-4">
+    <div className="border-t border-slate-200 bg-white p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:p-4">
       {replyingTo && (
         <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border-l-4 border-blue-500 bg-gray-50 px-3 py-2">
           <div className="min-w-0">
@@ -207,22 +209,25 @@ export default function MessageInput() {
 
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-3"
+        className="flex items-center gap-2 sm:gap-3"
       >
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="rounded-lg border border-gray-300 px-3 py-3 hover:bg-gray-100"
+          aria-label="Attach a file"
+          title="Attach a file"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-gray-300 hover:bg-gray-100"
         >
           📎
         </button>
 
         <input
           type="text"
+          aria-label="Type a message"
           value={content}
           maxLength={2000}
           placeholder="Type a message..."
-          className="flex-1 rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+          className="h-12 min-w-0 flex-1 rounded-xl border border-gray-300 px-3 py-3 text-sm outline-none focus:border-blue-500 sm:px-4 sm:text-base"
           onChange={(e) => {
             const value = e.target.value;
 
@@ -250,9 +255,12 @@ export default function MessageInput() {
 
         <button
           type="submit"
-          className="rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
+          aria-label="Send message"
+          disabled={!content.trim()}
+          className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 text-white hover:bg-blue-700 sm:px-6"
         >
-          Send
+          <Send size={16} />
+          <span className="hidden sm:inline">Send</span>
         </button>
       </form>
     </div>

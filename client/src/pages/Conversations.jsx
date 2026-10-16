@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Lock } from "lucide-react";
 
 import ConversationList from "../components/chat/ConversationList";
@@ -8,10 +8,48 @@ import MessageInput from "../components/chat/MessageInput";
 import MessageList from "../components/chat/MessageList";
 
 import { useConversation } from "../context/ConversationContext";
+import { useMessage } from "../context/MessageContext";
+import { useSocket } from "../context/SocketContext";
 
 export default function Conversations() {
-  const { selectedConversation } = useConversation();
+  const {
+    selectedConversation,
+    restoredConversationId,
+    completeConversationRestore,
+    markConversationRead,
+  } = useConversation();
+  const { loadMessages } = useMessage();
+  const { socket } = useSocket();
   const [showInfo, setShowInfo] = useState(false);
+  const restoringConversationRef = useRef(null);
+
+  useEffect(() => {
+    if (
+      !restoredConversationId ||
+      selectedConversation?.id !== restoredConversationId ||
+      !socket ||
+      restoringConversationRef.current === restoredConversationId
+    ) {
+      return undefined;
+    }
+
+    const conversationId = restoredConversationId;
+    restoringConversationRef.current = conversationId;
+
+    socket.emit("join-conversation", { conversationId });
+    loadMessages(conversationId).then(() => {
+      socket.emit("mark-read", { conversationId });
+      markConversationRead(conversationId);
+      completeConversationRestore(conversationId);
+    });
+  }, [
+    restoredConversationId,
+    selectedConversation?.id,
+    socket,
+    loadMessages,
+    markConversationRead,
+    completeConversationRestore,
+  ]);
 
   useEffect(() => {
     setShowInfo(false);
@@ -29,9 +67,9 @@ export default function Conversations() {
     !isRestrictedGroupMember;
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-xl border bg-white shadow-sm md:grid-cols-3">
+    <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden bg-white lg:grid-cols-[minmax(18rem,0.32fr)_minmax(0,0.68fr)]">
       <aside
-        className={`h-full min-h-0 border-r border-gray-200 md:block ${
+        className={`h-full min-h-0 min-w-0 border-r border-slate-200 lg:block ${
           selectedConversation ? "hidden" : "block"
         }`}
       >
@@ -39,7 +77,7 @@ export default function Conversations() {
       </aside>
 
       <section
-        className={`h-full min-h-0 flex-col md:col-span-2 md:flex ${
+        className={`h-full min-h-0 min-w-0 flex-col lg:col-start-2 lg:flex ${
           selectedConversation ? "flex" : "hidden"
         }`}
       >

@@ -37,6 +37,14 @@ export async function searchMessages(conversationId, query) {
   return data;
 }
 
+export async function searchAllMessages(query) {
+  const { data } = await api.get("/conversations/messages/search", {
+    params: { query },
+  });
+
+  return data;
+}
+
 export async function sendMessage(
   conversationId,
   content

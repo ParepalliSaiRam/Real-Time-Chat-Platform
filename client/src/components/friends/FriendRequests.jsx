@@ -9,7 +9,6 @@ import {
 } from "../../api/friend.api";
 import FriendRequestCard from "./FriendRequestCard";
 import { ListRowSkeleton } from "../ui/Skeleton";
-import EmptyState from "../ui/EmptyState";
 
 export default function FriendRequests() {
   const [requests, setRequests] = useState([]);
@@ -72,31 +71,49 @@ export default function FriendRequests() {
   };
 
   return (
-    <section className="rounded-xl border bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-xl font-semibold">
-        Incoming Requests
-      </h2>
+    <section className="surface overflow-hidden">
+      <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3.5 sm:px-5">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+            <UserPlus size={18} />
+          </span>
+          <h2 className="text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
+            Incoming requests
+          </h2>
+        </div>
+        {!loading && requests.length > 0 && (
+          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+            {requests.length} {requests.length === 1 ? "request" : "requests"}
+          </span>
+        )}
+      </header>
 
-      {loading && <ListRowSkeleton count={3} />}
-
-      {!loading && requests.length === 0 && (
-        <EmptyState
-          icon={UserPlus}
-          title="No pending requests"
-          description="Friend requests you receive will show up here."
-        />
-      )}
-
-      <div className="space-y-3">
-        {requests.map((request) => (
-          <FriendRequestCard
-            key={request.id}
-            request={request}
-            loading={processingId === request.id}
-            onAccept={handleAccept}
-            onReject={handleReject}
-          />
-        ))}
+      <div className="space-y-3 p-4 sm:p-5">
+        {loading ? (
+          <ListRowSkeleton count={2} />
+        ) : requests.length === 0 ? (
+          <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-3.5 py-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm ring-1 ring-slate-200">
+              <UserPlus size={16} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-slate-700">You’re all caught up</p>
+              <p className="mt-0.5 text-xs leading-5 text-slate-500">
+                New friend requests will appear here.
+              </p>
+            </div>
+          </div>
+        ) : (
+          requests.map((request) => (
+            <FriendRequestCard
+              key={request.id}
+              request={request}
+              loading={processingId === request.id}
+              onAccept={handleAccept}
+              onReject={handleReject}
+            />
+          ))
+        )}
       </div>
     </section>
   );

@@ -18,7 +18,9 @@ export default function Button({
         py-3
         font-semibold
         text-white
+        shadow-sm
         transition
+        duration-150
         hover:bg-blue-700
         disabled:cursor-not-allowed
         disabled:opacity-60
